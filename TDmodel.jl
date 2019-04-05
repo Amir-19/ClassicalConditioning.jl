@@ -60,6 +60,38 @@ function fig_tes()
     end
 end
 function figure_19()
-    e = Experiment(2,0.1,1.0,0.95,0.2,0,[Stimulus(1,2), Stimulus(2,3)])
+    background = zeros(3,1)
+    background[1] = 1.0
+    CSp_and_background = ones(3,1)
+    CSp_and_background[3] = 0.0
+    CSn_and_background = ones(3,1)
+    CSn_and_background[2] = 0.0
+    CSp_and_CSn_and_background = ones(3,1)
+
+    ep = Experiment(3,0.1,1.0,0.95,0.2,0,0,zeros(3,1),zeros(3,1))
+
+    for i = 1:80
+        steps(100,background,0.0,ep)
+        steps(4,CSp_and_background,0.0,ep)
+        steps(2,background,1.0,ep)
+        steps(100,background,0.0,ep)
+        steps(4,CSp_and_CSn_and_background,0.0,ep)
+        steps(2,background,0.0,ep)
+        print("step= ");print(i); print(" v_cp+: ");print(ep.V[2]);
+        print(" v_cs-: ");print(ep.V[3]);
+        println(" ")
+    end
+    for i = 81:130
+        steps(100,background,0.0,ep)
+        steps(4,CSp_and_background,0.0,ep)
+        steps(2,background,0.0,ep)
+        steps(100,background,0.0,ep)
+        steps(4,CSn_and_background,0.0,ep)
+        steps(2,background,0.0,ep)
+        print("step= ");print(i); print(" v_cp+: ");print(ep.V[2]);
+        print(" v_cs-: ");print(ep.V[3]);
+        println(" ")
+    end
+
 end
-fig_tes()
+figure_19()
