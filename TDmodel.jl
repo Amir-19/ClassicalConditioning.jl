@@ -21,18 +21,45 @@ mutable struct Experiment
     γ::Float16
     δ::Float16
     t::UInt32                       # current time step in the experiment
+    Vbar_prev_t::Float64
+    V::Array
+    Z::Array                        # Trace vector
 end
 function v_bar(V, X)
     value = dot(V', X)
     return value >= 0 ? value : 0
 end
-function steps(num_steps, X, λ, exp_detail::Experiment)
+function steps(num_steps, X, λ, ep::Experiment)
 
+    Vbar_t = 0
+    alpha_beta_error = 0
+
+    for i = 1:num_steps
+        Vbar_t = v_bar(ep.V, X)
+        alpha_beta_error = ep.α * ep.β * (λ + ep.γ*Vbar_t - ep.Vbar_prev_t)
+        ep.t += 1
+        ep.V += alpha_beta_error * ep.Z
+        ep.Z += ep.δ * (X - ep.Z)
+        ep.Vbar_prev_t = v_bar(ep.V, X)
+    end
 end
 
 function fig_tes()
-    e = Experiment(2,0.1,1.0,0.95,0.2,0,[Stimulus(1,2), Stimulus(2,3)])
+    background = zeros(2,1)
+    background[1] = 1.0
+    CS_and_background = ones(2,1)
+    ep = Experiment(2,0.1,1.0,0.95,0.2,0,0,zeros(2,1),zeros(2,1))
+    steps(100,background,0.0,ep)
+    for i = 1:20
+        steps(1,background,1.0,ep)
+        steps(2-1,background,0.0,ep)
+        steps(4,CS_and_background,0.0,ep)
+        steps(100,background,0.0,ep)
+        print("v_back: ");print(ep.V[1]);print(" v_cs: ");print(ep.V[2]);
+        println(" ")
+    end
 end
 function figure_19()
     e = Experiment(2,0.1,1.0,0.95,0.2,0,[Stimulus(1,2), Stimulus(2,3)])
 end
+fig_tes()
