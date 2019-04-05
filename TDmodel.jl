@@ -27,7 +27,7 @@ function v_bar(V, X)
     return value >= 0 ? value : 0
 end
 function steps(num_steps, X, λ, exp_detail::Experiment)
-    
+
 end
 
 function fig_tes()
