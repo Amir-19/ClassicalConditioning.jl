@@ -13,6 +13,7 @@
 =#
 
 using LinearAlgebra
+using Plots
 
 mutable struct Experiment
     num_stimuli::UInt32             # number of stimuli, including US
@@ -25,10 +26,12 @@ mutable struct Experiment
     V::Array
     Z::Array                        # Trace vector
 end
+
 function v_bar(V, X)
     value = dot(V', X)
     return value >= 0 ? value : 0
 end
+
 function steps(num_steps, X, λ, ep::Experiment)
 
     Vbar_t = 0
@@ -59,6 +62,7 @@ function fig_tes()
         println(" ")
     end
 end
+
 function figure_19()
     background = zeros(3,1)
     background[1] = 1.0
@@ -69,6 +73,9 @@ function figure_19()
     CSp_and_CSn_and_background = ones(3,1)
 
     ep = Experiment(3,0.1,1.0,0.95,0.2,0,0,zeros(3,1),zeros(3,1))
+    plot_x_time_steps = []
+    plot_y_V_csp = []
+    plot_y_V_csn = []
 
     for i = 1:80
         steps(100,background,0.0,ep)
@@ -77,9 +84,10 @@ function figure_19()
         steps(100,background,0.0,ep)
         steps(4,CSp_and_CSn_and_background,0.0,ep)
         steps(2,background,0.0,ep)
-        print("step= ");print(i); print(" v_cp+: ");print(ep.V[2]);
-        print(" v_cs-: ");print(ep.V[3]);
-        println(" ")
+
+        append!(plot_x_time_steps,i)
+        append!(plot_y_V_csp,ep.V[2])
+        append!(plot_y_V_csn,ep.V[3])
     end
     for i = 81:130
         steps(100,background,0.0,ep)
@@ -88,10 +96,86 @@ function figure_19()
         steps(100,background,0.0,ep)
         steps(4,CSn_and_background,0.0,ep)
         steps(2,background,0.0,ep)
-        print("step= ");print(i); print(" v_cp+: ");print(ep.V[2]);
-        print(" v_cs-: ");print(ep.V[3]);
-        println(" ")
+
+        append!(plot_x_time_steps,i)
+        append!(plot_y_V_csp,ep.V[2])
+        append!(plot_y_V_csn,ep.V[3])
+    end
+    plot(plot_x_time_steps,[plot_y_V_csp,plot_y_V_csn],label=["CS+" "CS-"])
+end
+
+function figure_20()
+    background = zeros(3,1)
+    background[1] = 1.0
+    CSA_and_background = ones(3,1)
+    CSA_and_background[3] = 0.0
+    CSB_and_background = ones(3,1)
+    CSB_and_background[2] = 0.0
+    CSA_and_CSB_and_background = ones(3,1)
+
+    ep_present = Experiment(3,0.1,1.0,0.95,0.2,0,0,zeros(3,1),zeros(3,1))
+    ep_absent = Experiment(3,0.1,1.0,0.95,0.2,0,0,zeros(3,1),zeros(3,1))
+    plot_x_time_steps = []
+    plot_y_V_csa_bpresent = []
+    plot_y_V_csa_babsent = []
+
+    for i = 1:80
+        steps(100,background,0.0,ep_absent)
+        steps(4,CSA_and_background,0.0,ep_absent)
+        steps(4,background,0.0,ep_absent)
+        steps(2,background,1.0,ep_absent)
+
+        append!(plot_x_time_steps,i)
+        append!(plot_y_V_csa_babsent,ep_absent.V[2])
     end
 
+    for i = 1:80
+        steps(100,background,0.0,ep_present)
+        steps(4,CSA_and_background,0.0,ep_present)
+        steps(4,CSB_and_background,0.0,ep_present)
+        steps(2,background,1.0,ep_present)
+
+        append!(plot_y_V_csa_bpresent,ep_present.V[2])
+    end
+    plot(plot_x_time_steps,[plot_y_V_csa_babsent,plot_y_V_csa_bpresent],
+        label=["CSB Absent" "CSB Present"])
 end
-figure_19()
+
+function figure_21()
+    background = zeros(3,1)
+    background[1] = 1.0
+    CSA_and_background = ones(3,1)
+    CSA_and_background[3] = 0.0
+    CSB_and_background = ones(3,1)
+    CSB_and_background[2] = 0.0
+    CSA_and_CSB_and_background = ones(3,1)
+
+    ep_present = Experiment(3,0.1,1.0,0.95,0.2,0,0,zeros(3,1),zeros(3,1))
+    ep_absent = Experiment(3,0.1,1.0,0.95,0.2,0,0,zeros(3,1),zeros(3,1))
+    plot_x_time_steps = []
+    plot_y_V_csb_apresent = []
+    plot_y_V_csb_aabsent = []
+
+    for i = 1:80
+        steps(100,background,0.0,ep_absent)
+        steps(4,background,0.0,ep_absent)
+        steps(4,CSB_and_background,0.0,ep_absent)
+        steps(2,background,1.0,ep_absent)
+
+        append!(plot_x_time_steps,i)
+        append!(plot_y_V_csb_aabsent,ep_absent.V[3])
+    end
+
+    for i = 1:80
+        steps(100,background,0.0,ep_present)
+        steps(4,CSA_and_background,0.0,ep_present)
+        steps(4,CSA_and_CSB_and_background,0.0,ep_present)
+        steps(2,background,1.0,ep_present)
+
+        append!(plot_y_V_csb_apresent,ep_present.V[3])
+    end
+    plot(plot_x_time_steps,[plot_y_V_csb_aabsent,plot_y_V_csb_apresent],
+        label=["CSA Absent" "CSA Present"])
+end
+
+figure_21()
