@@ -60,8 +60,11 @@ function first_experiment()
     plot_y_V_background = []
     plot_y_V_cs = []
 
-    steps(100,background,0.0,ep)      # inter-trial-interval
-    for i = 1:80
+    num_episodes = 80
+    num_time_steps_per_episode = 107
+
+    
+    for i = 1:num_episodes
         steps(4,CS_and_background,0.0,ep) # present CS with background
         steps(1,background,0.0,ep)        # trace interval
         steps(2,background,1.0,ep)        # US/reward
