@@ -36,44 +36,60 @@ end
 function v_bar(V, X)
     value = dot(V', X)
     return value >= 0 ? value : 0
+    #return value
 end
 
-function steps(num_steps, X, λ, ep::ExperimentSettings, ep_data::ExperimentData, is_onset::Bool, src_vector::Array)
+function calculate_traces(X,ep::ExperimentSettings,is_onset::Bool, src_vector::Array)
+    X_prime = zeros(size(X))
+    for j = 1:size(src_vector)[1]
+        if src_vector[j]!=0
+            if src_vector[src_vector[j]]!=0
+                X_prime[j] = ep.trace_decay * X[j] + X[src_vector[j]]
+            else
+                if is_onset == true
+                    X_prime[j] = ep.trace_decay * X[j] + X[src_vector[j]]
+                    is_onset = false
+                else
+                    X_prime[j] = ep.trace_decay * X[j]
+                end
+            end
+        else
+            X_prime[j] = X[j]
+        end
+    end
+    return X_prime
+end
+
+function save_data(X,Z,λ,t,episode,ep_data::ExperimentData)
+    for i=1:size(X)[1]
+        ep_data.feature[episode,t+1,i]=X[i]
+        ep_data.Z[episode,t+1,i]=Z[i]
+    end
+    ep_data.US[episode,t+1,1]=λ
+end
+
+function steps(num_steps, X, λ, ep::ExperimentSettings, ep_data::ExperimentData, is_onset::Bool, src_vector::Array,episode_index)
 
     Vbar_t = 0
     alpha_beta_error = 0
     X_prime = zeros(size(X))
     for i = 1:num_steps
-        for j = 1:size(src_vector)[1]
-            if src_vector[j]!=0
-                if src_vector[src_vector[j]]!=0
-                    X_prime[j] = ep.trace_decay * X[j] + X[src_vector[j]]
-                else
-                    if is_onset == true
-                        X_prime[j] = ep.trace_decay * X[j] + X[src_vector[j]]
-                        is_onset = false
-                    else
-                        X_prime[j] = ep.trace_decay * X[j]
-                    end
-                end
-            else
-                X_prime[j] = X[j]
-            end
-        end
-        X = copy(X_prime)
+        save_data(X,ep.Z,λ,ep.t,episode_index,ep_data)
+        X_prime = calculate_traces(X,ep,is_onset,src_vector)
         Vbar_t = v_bar(ep.V, X)
         alpha_beta_error = ep.α * ep.β * (λ + ep.γ*Vbar_t - ep.Vbar_prev_t)
         ep.t += 1
         ep.V += alpha_beta_error * ep.Z
         ep.Z += ep.δ * (X - ep.Z)
         ep.Vbar_prev_t = v_bar(ep.V, X)
+        X = copy(X_prime/sum(X))
     end
     return X_prime
 end
 
 function experiment_test_traces()
     println("-------------------------------------------------------------------------")
-    m = 5 # size of the feature vector [background,CSs,Traces]
+    m = 16 # size of the feature vector [background,CSs,Traces]
 
     src_vector = collect(0:m-1)
     src_vector[2] = 0
@@ -90,23 +106,37 @@ function experiment_test_traces()
     feature_vector = zeros(m,1)
 
     num_episodes = 100
-    max_time_step = 200 # for storage
-    ep_data = ExperimentData(CS=zeros(num_episodes,max_time_step,1),US=zeros(num_episodes,max_time_step,1),feature=zeros(num_episodes,max_time_step,1),Z=zeros(num_episodes,max_time_step,1),td_error = zeros(num_episodes,max_time_step,1), actual_predition=zeros(num_episodes,max_time_step,1))
+    max_time_step = 300 # for storage
+    ep_data = ExperimentData(CS=zeros(num_episodes,max_time_step,1),US=zeros(num_episodes,max_time_step,1),feature=zeros(num_episodes,max_time_step,m),Z=zeros(num_episodes,max_time_step,m),td_error = zeros(num_episodes,max_time_step,1), actual_predition=zeros(num_episodes,max_time_step,1))
 
     cap_time = 0
 
     for i = 1:num_episodes
+        # presenting background
+        feature_vector = steps(100,background,0.0,ep,ep_data,false,src_vector,i)
         feature_vector = copy(CS_and_background)
-        feature_vector = steps(4,feature_vector,0.0,ep,ep_data,true,src_vector) #CS+BG
+        # presenting CS and background
+        feature_vector = steps(4,feature_vector,0.0,ep,ep_data,true,src_vector,i)
         feature_vector[2] = 0
-        feature_vector = steps(0,feature_vector,0.0,ep,ep_data,true,src_vector) #Trace Interval
-        feature_vector = steps(1,feature_vector,1.0,ep,ep_data,true,src_vector) #US
-        feature_vector = steps(100,feature_vector,0.0,ep,ep_data,true,src_vector) #inter-trail
+        # trace Interval
+        feature_vector = steps(10,feature_vector,0.0,ep,ep_data,false,src_vector,i)
+        # presenting the US
+        feature_vector = steps(1,feature_vector,1.0,ep,ep_data,false,src_vector,i)
+        # inter-trail
+        feature_vector = steps(100,feature_vector,0.0,ep,ep_data,false,src_vector,i)
+
+        cap_time = ep.t
+        ep.t = 0
     end
-    sum_value = 0
-    for i=2:m
-        sum_value+=ep.V[i]
+    # plot the prediction
+    # println(size(ep_data.feature[100,100,:]))
+    # println(ep_data.feature[100,101,2])
+    # println(size(ep.V))
+    #println(dot(ep.V',ep_data.feature[100,cap_time,:]))
+    data = []
+    for i=1:cap_time
+        data = [data;dot(ep.V',ep_data.feature[num_episodes,i,:])]
     end
-    print(sum_value)
+    plot(data[101:120])
 end
 experiment_test_traces()
