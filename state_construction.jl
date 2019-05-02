@@ -6,6 +6,7 @@
     conditioning code written by Rich Sutton.  April 12, 2019
 =#
 using LinearAlgebra
+using Statistics
 using Plots
 
 
@@ -69,7 +70,7 @@ function save_data(X,Z,λ,t,episode,ep_data::ExperimentData)
 end
 
 function steps(num_steps, X, λ, ep::ExperimentSettings, ep_data::ExperimentData, is_onset::Bool, src_vector::Array,episode_index)
-
+    normalization = "sumtoone"
     Vbar_t = 0
     alpha_beta_error = 0
     X_prime = zeros(size(X))
@@ -82,14 +83,24 @@ function steps(num_steps, X, λ, ep::ExperimentSettings, ep_data::ExperimentData
         ep.V += alpha_beta_error * ep.Z
         ep.Z += ep.δ * (X - ep.Z)
         ep.Vbar_prev_t = v_bar(ep.V, X)
-        X = copy(X_prime/sum(X))
+        if normalization == "scaling"
+            X = copy((X_prime .- minimum(X_prime))/(maximum(X_prime)-minimum(X_prime)))
+        elseif normalization == "normalization"
+            X = copy((X_prime .- mean(X_prime))/(maximum(X_prime)-minimum(X_prime)))
+        elseif normalization == "standardaztion"
+            X = copy((X_prime .- minimum(X_prime))/(stdm(X_prime,mean(X_prime))))
+        elseif normalization == "sumtoone"
+            X = copy(X_prime/sum(X))
+        else
+            X = copy(X_prime)
+        end
     end
     return X_prime
 end
 
 function experiment_test_traces()
     println("-------------------------------------------------------------------------")
-    m = 16 # size of the feature vector [background,CSs,Traces]
+    m = 15 # size of the feature vector [background,CSs,Traces]
 
     src_vector = collect(0:m-1)
     src_vector[2] = 0
@@ -121,22 +132,25 @@ function experiment_test_traces()
         # trace Interval
         feature_vector = steps(10,feature_vector,0.0,ep,ep_data,false,src_vector,i)
         # presenting the US
-        feature_vector = steps(1,feature_vector,1.0,ep,ep_data,false,src_vector,i)
+        feature_vector = steps(10,feature_vector,1.0,ep,ep_data,false,src_vector,i)
         # inter-trail
         feature_vector = steps(100,feature_vector,0.0,ep,ep_data,false,src_vector,i)
 
         cap_time = ep.t
         ep.t = 0
     end
-    # plot the prediction
-    # println(size(ep_data.feature[100,100,:]))
-    # println(ep_data.feature[100,101,2])
-    # println(size(ep.V))
-    #println(dot(ep.V',ep_data.feature[100,cap_time,:]))
-    data = []
-    for i=1:cap_time
-        data = [data;dot(ep.V',ep_data.feature[num_episodes,i,:])]
+    # plotting code
+    prediction_data = []
+    CS_data = []
+    US_data = []
+    selected_feature_data = []
+    #for i=1:cap_time
+    for i=90:140
+        prediction_data = [prediction_data;dot(ep.V[2:end]',ep_data.feature[num_episodes,i,2:end])]
+        CS_data = [CS_data;ep_data.feature[num_episodes,i,2]]
+        US_data = [US_data;ep_data.US[num_episodes,i]]
     end
-    plot(data[101:120])
+    data = [CS_data,US_data,prediction_data]
+    plot(data,layout = (3,1))
 end
 experiment_test_traces()
