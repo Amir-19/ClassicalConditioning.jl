@@ -97,7 +97,16 @@ function steps(num_steps, X, λ, ep::ExperimentSettings, ep_data::ExperimentData
     end
     return X_prime
 end
-
+function CSC_step(X, λ, ep::ExperimentSettings)
+    Vbar_t = 0
+    alpha_beta_error = 0
+    Vbar_t = v_bar(ep.V, X)
+    alpha_beta_error = ep.α * ep.β * (λ + ep.γ*Vbar_t - ep.Vbar_prev_t)
+    ep.t += 1
+    ep.V += alpha_beta_error * ep.Z
+    ep.Z += ep.δ * (X - ep.Z)
+    ep.Vbar_prev_t = v_bar(ep.V, X)
+end
 function experiment_test_traces()
     println("-------------------------------------------------------------------------")
     m = 15 # size of the feature vector [background,CSs,Traces]
@@ -139,18 +148,34 @@ function experiment_test_traces()
         cap_time = ep.t
         ep.t = 0
     end
+    # CSC just to compare
+    CSC_ep = ExperimentSettings(num_stimuli=cap_time,α=0.1,β=1.0,γ=0.95,δ=0.2, trace_decay = 0.1,t=0,Vbar_prev_t=0,V=zeros(cap_time,1),Z=zeros(cap_time,1))
+    CSC_feature = zeros(cap_time,cap_time)
+    for i = 1:num_episodes
+        for j=1:cap_time
+            feature_vector = zeros(cap_time)
+            feature_vector[j] = 1.0
+            CSC_step(feature_vector,ep_data.US[1,j],CSC_ep)
+            CSC_feature[j,:] = feature_vector
+        end
+        CSC_ep.t = 0
+    end
+    println(size(CSC_feature[1,:]))
+    println(size(CSC_ep.V))
     # plotting code
     prediction_data = []
+    csc_prediciton_data = []
     CS_data = []
     US_data = []
     selected_feature_data = []
     #for i=1:cap_time
     for i=90:140
         prediction_data = [prediction_data;dot(ep.V[2:end]',ep_data.feature[num_episodes,i,2:end])]
+        csc_prediciton_data = [csc_prediciton_data;dot(CSC_ep.V',CSC_feature[i,:])]
         CS_data = [CS_data;ep_data.feature[num_episodes,i,2]]
         US_data = [US_data;ep_data.US[num_episodes,i]]
     end
-    data = [CS_data,US_data,prediction_data]
-    plot(data,layout = (3,1))
+    data = [prediction_data,CS_data,US_data,csc_prediciton_data]
+    plot(data,layout = (3,1),label = ["actual prediction" "CS" "US" "ideal prediction"])
 end
 experiment_test_traces()
