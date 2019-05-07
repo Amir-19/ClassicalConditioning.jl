@@ -94,7 +94,11 @@ function steps(num_steps, X, λ, ep::ExperimentSettings, ep_data::ExperimentData
         else
             X = copy(X_prime)
         end
+        # if episode_index==1
+        #     println(X)
+        # end
     end
+
     return X_prime
 end
 function CSC_step(X, λ, ep::ExperimentSettings)
@@ -160,8 +164,7 @@ function experiment_test_traces()
         end
         CSC_ep.t = 0
     end
-    println(size(CSC_feature[1,:]))
-    println(size(CSC_ep.V))
+
     # plotting code
     prediction_data = []
     csc_prediciton_data = []
@@ -170,7 +173,7 @@ function experiment_test_traces()
     selected_feature_data = []
     #for i=1:cap_time
     for i=90:140
-        prediction_data = [prediction_data;dot(ep.V[2:end]',ep_data.feature[num_episodes,i,2:end])]
+        prediction_data = [prediction_data;dot(ep.V[1:end]',ep_data.feature[num_episodes,i,1:end])]
         csc_prediciton_data = [csc_prediciton_data;dot(CSC_ep.V',CSC_feature[i,:])]
         CS_data = [CS_data;ep_data.feature[num_episodes,i,2]]
         US_data = [US_data;ep_data.US[num_episodes,i]]
