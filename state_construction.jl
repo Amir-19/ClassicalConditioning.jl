@@ -58,7 +58,7 @@ function calculate_traces(X,ep::ExperimentSettings,is_onset::Bool, src_vector::A
             X_prime[j] = X[j]
         end
     end
-    return X_prime
+    return X_prime, is_onset
 end
 
 function save_data(X,Z,λ,t,episode,ep_data::ExperimentData)
@@ -70,13 +70,13 @@ function save_data(X,Z,λ,t,episode,ep_data::ExperimentData)
 end
 
 function steps(num_steps, X, λ, ep::ExperimentSettings, ep_data::ExperimentData, is_onset::Bool, src_vector::Array,episode_index)
-    normalization = "sumtoone"
+    normalization = "sumtoone1"
     Vbar_t = 0
     alpha_beta_error = 0
     X_prime = zeros(size(X))
     for i = 1:num_steps
         save_data(X,ep.Z,λ,ep.t,episode_index,ep_data)
-        X_prime = calculate_traces(X,ep,is_onset,src_vector)
+        X_prime,is_onset = calculate_traces(X,ep,is_onset,src_vector)
         Vbar_t = v_bar(ep.V, X)
         alpha_beta_error = ep.α * ep.β * (λ + ep.γ*Vbar_t - ep.Vbar_prev_t)
         ep.t += 1
@@ -94,9 +94,6 @@ function steps(num_steps, X, λ, ep::ExperimentSettings, ep_data::ExperimentData
         else
             X = copy(X_prime)
         end
-        # if episode_index==1
-        #     println(X)
-        # end
     end
 
     return X_prime
@@ -113,12 +110,12 @@ function CSC_step(X, λ, ep::ExperimentSettings)
 end
 function experiment_test_traces()
     println("-------------------------------------------------------------------------")
-    m = 15 # size of the feature vector [background,CSs,Traces]
+    m = 25 # size of the feature vector [background,CSs,Traces]
 
     src_vector = collect(0:m-1)
     src_vector[2] = 0
 
-    ep = ExperimentSettings(num_stimuli=m,α=0.1,β=1.0,γ=0.95,δ=0.2, trace_decay = 0.1,t=0,Vbar_prev_t=0,V=zeros(m,1),Z=zeros(m,1))
+    ep = ExperimentSettings(num_stimuli=m,α=0.1,β=1.0,γ=0.95,δ=0.2, trace_decay = 0.0,t=0,Vbar_prev_t=0,V=zeros(m,1),Z=zeros(m,1))
 
 
     # forming the representation vectors
@@ -129,7 +126,7 @@ function experiment_test_traces()
     CS_and_background[2] = 1.0
     feature_vector = zeros(m,1)
 
-    num_episodes = 100
+    num_episodes = 1000
     max_time_step = 300 # for storage
     ep_data = ExperimentData(CS=zeros(num_episodes,max_time_step,1),US=zeros(num_episodes,max_time_step,1),feature=zeros(num_episodes,max_time_step,m),Z=zeros(num_episodes,max_time_step,m),td_error = zeros(num_episodes,max_time_step,1), actual_predition=zeros(num_episodes,max_time_step,1))
 
