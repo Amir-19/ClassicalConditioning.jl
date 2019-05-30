@@ -110,12 +110,12 @@ function CSC_step(X, λ, ep::ExperimentSettings)
 end
 function experiment_test_traces()
     println("-------------------------------------------------------------------------")
-    m = 25 # size of the feature vector [background,CSs,Traces]
+    m = 11 # size of the feature vector [background,CSs,Traces]
 
     src_vector = collect(0:m-1)
     src_vector[2] = 0
 
-    ep = ExperimentSettings(num_stimuli=m,α=0.1,β=1.0,γ=0.95,δ=0.2, trace_decay = 0.0,t=0,Vbar_prev_t=0,V=zeros(m,1),Z=zeros(m,1))
+    ep = ExperimentSettings(num_stimuli=m,α=0.1,β=1.0,γ=0.95,δ=0.2, trace_decay = 0.1,t=0,Vbar_prev_t=0,V=zeros(m,1),Z=zeros(m,1))
 
 
     # forming the representation vectors
@@ -142,7 +142,7 @@ function experiment_test_traces()
         # trace Interval
         feature_vector = steps(10,feature_vector,0.0,ep,ep_data,false,src_vector,i)
         # presenting the US
-        feature_vector = steps(10,feature_vector,1.0,ep,ep_data,false,src_vector,i)
+        feature_vector = steps(1,feature_vector,1.0,ep,ep_data,false,src_vector,i)
         # inter-trail
         feature_vector = steps(100,feature_vector,0.0,ep,ep_data,false,src_vector,i)
 
@@ -177,5 +177,6 @@ function experiment_test_traces()
     end
     data = [prediction_data,CS_data,US_data,csc_prediciton_data]
     plot(data,layout = (3,1),label = ["actual prediction" "CS" "US" "ideal prediction"])
+    #,linetype=:steppost
 end
 experiment_test_traces()
