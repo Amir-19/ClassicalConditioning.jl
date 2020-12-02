@@ -178,4 +178,4 @@ function figure_21()
         label=["CSA Absent" "CSA Present"])
 end
 
-figure_21()
+figure_20()
